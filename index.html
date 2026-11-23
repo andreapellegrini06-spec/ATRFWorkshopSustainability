@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Meridian 2035: the carbon and constraints game calculator for the ATRF 2026 workshop.">
+<title>Meridian 2035</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+[hidden]{display:none!important}img{max-width:100%}
+
+/* Layout: transit-map vernacular. Cards are "lines" with numbered bullets; scoreboard is a sticky ledger beside the deck. */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --raise:#F7FAF9; --ink:#14201E; --muted:#56655F; --line:#D3DCD9;
+  --accent:#0C6B63; --accent-ink:#FFFFFF;
+  --ok:#1D7438; --ok-bg:#E3F2E7; --bad:#B0261C; --bad-bg:#FBE7E5; --warn:#8A5A00;
+  --c-policy:#2E4A9E; --c-pricing:#B67400; --c-infra:#00766F; --c-ops:#74399A; --c-demand:#3A7F37; --c-cross:#A9402A;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif; --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1514; --surface:#151F1E; --raise:#1A2625; --ink:#E4ECEA; --muted:#97A8A3; --line:#2A3735;
+  --accent:#4CC0B2; --accent-ink:#06201D;
+  --ok:#6BD08A; --ok-bg:#16301F; --bad:#FF8A7E; --bad-bg:#3A1A17; --warn:#E8B04A;
+  --c-policy:#8EA6F2; --c-pricing:#F0B54A; --c-infra:#43C7BC; --c-ops:#C795E8; --c-demand:#86CF7F; --c-cross:#F08F78;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1514; --surface:#151F1E; --raise:#1A2625; --ink:#E4ECEA; --muted:#97A8A3; --line:#2A3735;
+  --accent:#4CC0B2; --accent-ink:#06201D;
+  --ok:#6BD08A; --ok-bg:#16301F; --bad:#FF8A7E; --bad-bg:#3A1A17; --warn:#E8B04A;
+  --c-policy:#8EA6F2; --c-pricing:#F0B54A; --c-infra:#43C7BC; --c-ops:#C795E8; --c-demand:#86CF7F; --c-cross:#F08F78;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:22px 10px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.brand h1{font-family:var(--f-display);font-stretch:118%;font-weight:850;font-size:clamp(28px,6vw,40px);letter-spacing:-.01em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:0;color:var(--muted);font-size:14px}
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:14px;overflow-x:auto}
+nav.tabs a{font-family:var(--f-display);font-stretch:95%;font-weight:650;font-size:15px;color:var(--muted);text-decoration:none;padding:10px 14px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs a:focus-visible,button:focus-visible,.cardbtn:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+main{padding-block:18px 64px}
+.view{display:block}
+h2{font-family:var(--f-display);font-stretch:108%;font-weight:800;font-size:22px;margin:0 0 6px;text-wrap:balance}
+h3{font-family:var(--f-display);font-stretch:100%;font-weight:750;font-size:17px;margin:0 0 6px;text-wrap:balance}
+.eyebrow{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* play layout */
+.play{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+@media (max-width:900px){.play{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.setup{display:grid;gap:14px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button,.chip{font:inherit;font-weight:600;border:1.5px solid var(--line);background:var(--raise);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"],.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.cons{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.con{border:1.5px dashed var(--muted);border-radius:8px;padding:10px 12px;background:var(--raise)}
+.con b{font-family:var(--f-display);font-stretch:95%;display:block;font-size:15px}
+.con p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+
+.deck{display:grid;gap:22px;margin-top:22px}
+.cat h3{display:flex;align-items:center;gap:10px}
+.cat h3 .swatch{width:26px;height:10px;border-radius:5px;background:var(--cc)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.card{position:relative;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 12px 10px;display:grid;gap:8px;min-width:0;align-content:start}
+.card.sel{border-color:var(--cc);box-shadow:inset 0 0 0 1.5px var(--cc);background:color-mix(in srgb,var(--cc) 7%,var(--surface))}
+.cardbtn{all:unset;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}
+.bullet{width:32px;height:32px;border-radius:50%;background:var(--cc);color:var(--surface);font-family:var(--f-display);font-weight:800;font-stretch:90%;display:grid;place-items:center;font-size:15px}
+.card .name{font-family:var(--f-display);font-stretch:96%;font-weight:750;font-size:16px;line-height:1.2}
+.card .desc{font-size:13px;color:var(--muted);margin-top:2px}
+.tick{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;font-weight:800;color:transparent}
+.card.sel .tick{background:var(--cc);border-color:var(--cc);color:var(--surface)}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.stats b{font-family:var(--f-mono);font-size:14px}
+.crit{display:flex;gap:6px;flex-wrap:wrap}
+.pip{font-family:var(--f-mono);font-size:12px;border-radius:5px;padding:1px 6px;border:1px solid var(--line);color:var(--muted)}
+.pip.pos{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.pip.neg{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--raise);border:1px solid var(--line);color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted)}
+.note.syn{color:var(--ink)}
+.note.half{color:var(--warn);font-weight:600}
+.recycle{display:flex;align-items:center;gap:8px;font-size:13px;padding-top:4px;border-top:1px dashed var(--line)}
+.recycle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* scoreboard */
+.board{position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px);display:grid;gap:14px}
+@media (max-width:900px){.board{position:static}}
+.verdict{border-radius:8px;padding:10px 12px;font-family:var(--f-display);font-weight:800;font-stretch:100%;font-size:17px}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.no{background:var(--bad-bg);color:var(--bad)}
+.meter{display:grid;gap:4px}
+.meter .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.meter .big{font-family:var(--f-mono);font-size:24px;font-weight:600}
+.bar{position:relative;height:12px;border-radius:6px;background:var(--raise);border:1px solid var(--line);overflow:visible}
+.bar .fill{position:absolute;inset:0 auto 0 0;border-radius:6px;background:var(--muted)}
+.bar .mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.bar.ok .fill{background:var(--ok)} .bar.no .fill{background:var(--bad)}
+.critrows{display:grid;gap:7px}
+.critrow{display:grid;grid-template-columns:146px 34px minmax(0,1fr);gap:8px;align-items:center;font-size:13.5px}
+.critrow .val{font-family:var(--f-mono);text-align:right}
+.critrow.chosen .lab{font-weight:700}
+.dbar{position:relative;height:10px;border-radius:5px;background:var(--raise);border:1px solid var(--line)}
+.dbar .f{position:absolute;top:0;bottom:0;border-radius:5px}
+.dbar .zero{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--muted)}
+.dbar .tgt{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.checks li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:13.5px}
+.checks .ic{font-weight:800}
+.checks li.ok .ic{color:var(--ok)} .checks li.no .ic{color:var(--bad)}
+.checks small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.sumline{font-family:var(--f-mono);font-size:14px;word-break:break-word}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-weight:650;border-radius:8px;padding:8px 12px;border:1.5px solid var(--line);background:var(--raise);color:var(--ink);cursor:pointer;min-height:38px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.switch{display:flex;gap:10px;align-items:flex-start}
+.switch input{width:20px;height:20px;margin-top:2px;accent-color:var(--accent)}
+.mobilebar{display:none}
+@media (max-width:900px){
+  .mobilebar{display:flex;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;gap:10px;justify-content:space-between;align-items:center;background:var(--surface);border-bottom:1px solid var(--line);margin:0 calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-size:13px}
+  .mobilebar b{font-family:var(--f-mono);font-size:15px}
+  .mobilebar .pill{font-family:var(--f-display);font-weight:800;border-radius:999px;padding:3px 10px;font-size:13px}
+  .mobilebar .pill.ok{background:var(--ok-bg);color:var(--ok)} .mobilebar .pill.no{background:var(--bad-bg);color:var(--bad)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+}
+
+/* reading views */
+.read{max-width:760px;display:grid;gap:22px}
+.read p,.read li{max-width:68ch}
+.read ol,.read ul{padding-left:20px;margin:6px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.fivec{display:grid;gap:10px;counter-reset:c}
+.fivec div{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.fivec .k{font-family:var(--f-display);font-weight:850;font-stretch:110%;font-size:26px;color:var(--accent);line-height:1}
+.fivec b{font-family:var(--f-display);font-stretch:100%;font-size:16px}
+.fivec p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.sort{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.sort > div{border-radius:10px;padding:12px;border:1.5px solid var(--line);background:var(--surface)}
+.sort b{font-family:var(--f-display);font-size:15px}
+.sort p{margin:4px 0 0;font-size:13.5px;color:var(--muted)}
+.ref{font-size:14px}
+.ref li{margin-bottom:6px}
+a{color:var(--accent)}
+.defn{font-size:17px;line-height:1.55;border-left:4px solid var(--accent);padding:4px 0 4px 14px;margin:6px 0}
+.table-wrap{overflow-x:auto}
+table.k{border-collapse:collapse;font-size:13.5px;min-width:520px}
+table.k th,table.k td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.k th{font-family:var(--f-display);font-stretch:90%;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.card{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Meridian <span>2035</span></h1><p>The carbon and constraints game · ATRF 2026 workshop, Sydney</p></div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#play" data-view="play">Play</a>
+      <a href="#rules" data-view="rules">Rules</a>
+      <a href="#take-home" data-view="take-home">Take-home</a>
+    </nav>
+  </header>
+  <div class="mobilebar" id="mobilebar" aria-live="polite"></div>
+  <main>
+    <section class="view" id="view-play">
+      <div class="play">
+        <div>
+          <div class="panel setup">
+            <div>
+              <div class="eyebrow">Step 1 · Your group</div>
+              <div class="seg" id="groupSeg" role="group" aria-label="Group"></div>
+            </div>
+            <div>
+              <div class="eyebrow">Your constraint cards</div>
+              <div class="cons" id="consBox"></div>
+            </div>
+            <div>
+              <div class="eyebrow">Step 2 · Pick two criteria to champion (each must reach +7)</div>
+              <div class="seg" id="critSeg" role="group" aria-label="Criteria"></div>
+            </div>
+            <p class="note" style="margin:0">Step 3 · Tap a card to add it to your portfolio, and the scoreboard will update as you go. Each card reports the carbon units (CU) cut by 2035, the coins it costs (or raises) and the years needed before it takes full effect.</p>
+          </div>
+          <div class="deck" id="deck"></div>
+        </div>
+        <aside class="board" aria-label="Scoreboard">
+          <div class="panel" style="display:grid;gap:14px">
+            <div id="verdict" class="verdict no">Pick your cards</div>
+            <div class="meter">
+              <div class="row"><span class="eyebrow">Emissions in 2035</span><span><span class="big" id="emis">100</span> <span class="muted">CU · budget 60</span></span></div>
+              <div class="bar" id="emisBar"><div class="fill"></div><div class="mark" style="left:60%"></div></div>
+              <div class="note">Business as usual is 100 CU. Your cut so far: <b class="mono" id="cutTxt">0</b> CU.</div>
+            </div>
+            <div class="meter">
+              <div class="row"><span class="eyebrow">Coins spent</span><span><span class="big" id="coins">0</span> <span class="muted" id="allowTxt">of 16</span></span></div>
+              <div class="bar" id="coinBar"><div class="fill"></div></div>
+            </div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px">Criteria</div>
+              <div class="critrows" id="critRows"></div>
+            </div>
+            <div>
+              <div class="eyebrow" style="margin-bottom:6px">Checks</div>
+              <ul class="checks" id="checks"></ul>
+            </div>
+          </div>
+          <div class="panel" style="display:grid;gap:10px">
+            <div class="eyebrow">Your portfolio</div>
+            <div class="sumline" id="summary">No cards yet.</div>
+            <p class="note" style="margin:0">Recorder: in Mentimeter, tick exactly these card numbers on the "Our portfolio" slide.</p>
+            <div class="btnrow">
+              <button class="btn primary" id="copyBtn" type="button">Copy card numbers</button>
+              <button class="btn danger" id="resetBtn" type="button">Clear portfolio</button>
+            </div>
+            <div id="resetConfirm" hidden class="btnrow"><span class="note">Remove every card?</span><button class="btn danger" id="resetYes" type="button">Yes, clear</button><button class="btn" id="resetNo" type="button">Keep</button></div>
+            <div class="note" id="copyMsg" aria-live="polite"></div>
+          </div>
+          <div class="panel switch">
+            <input type="checkbox" id="curve">
+            <label for="curve"><b>Curveball: court ruling.</b> <span class="note">Tick only when the facilitator announces it. The Road user charge then cuts 2 CU, raises nothing and cannot be recycled.</span></label>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view read" id="view-rules" hidden>
+      <div>
+        <div class="eyebrow">The setting</div>
+        <h2>Welcome to Meridian</h2>
+        <p>Meridian is a fictional coastal city-region of 1.6 million people, which is expected to grow to 1.9 million by 2035. A compact centre and an older inner ring sit beside a busy container port, whilst most residents live in car-dependent middle and outer suburbs, where three in four trips are made by car. Further, the electricity grid is becoming cleaner, albeit slowly, summers are getting hotter, and the river has flooded twice in the past ten years.</p>
+        <p>You act as the combined state and local government. If nothing changes, Meridian is expected to emit <b>100 CU</b> (carbon units) in 2035, that is, 45 from transport, 25 from electricity, 15 from buildings, 10 from construction and industry, and 5 from waste and land.</p>
+      </div>
+      <div>
+        <h2>Your mission</h2>
+        <ol>
+          <li><b>Carbon.</b> Cut at least 40 CU, so that emissions in 2035 are 60 CU or less.</li>
+          <li><b>Money.</b> Spend no more than 16 coins over ten years. Pricing cards raise revenue and, consequently, show a negative cost.</li>
+          <li><b>Two criteria.</b> Choose two of Equity, Resilience, Health and safety, and Liveability, and lift each of them to +7 or more.</li>
+          <li><b>Do no significant harm.</b> None of the four criteria may fall below 0.</li>
+          <li><b>Constraints.</b> Respect the two constraint cards dealt to your group.</li>
+        </ol>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h3>Synergies</h3><ul class="note" id="synList"></ul></div>
+        <div class="panel"><h3>Revenue recycling</h3><p class="note">For the Congestion charge and the Road user charge, the revenue may be returned to low-income households. In so doing, the card costs one extra coin, although its Equity score becomes +1.</p><h3 style="margin-top:10px">Lead time</h3><p class="note">This is the number of years needed before a measure takes full effect. The CU reported on each card already account for it, and slow cards also report what they would add after 2035.</p></div>
+      </div>
+      <div>
+        <h2>The nine constraint cards</h2>
+        <p class="muted">Each group is dealt two cards. Group E is used only if a fifth table is needed.</p>
+        <div class="table-wrap"><table class="k" id="consTable"><thead><tr><th>Card</th><th>What it does</th><th>Dealt to</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel"><h3>Curveball</h3><p class="note" id="curveTxt"></p></div>
+    </section>
+
+    <section class="view read" id="view-take-home" hidden>
+      <div>
+        <div class="eyebrow">Looking to a more sustainable future: utopia or a real possibility?</div>
+        <h2>Take-home resources</h2>
+        <p class="muted">These resources come from the ATRF 2026 workshop led by Dr Andrea Pellegrini and Professor John M. Rose (Institute of Transport and Logistics Studies, The University of Sydney Business School). The no-regrets list and the roadmap developed by the room will be added after the session.</p>
+      </div>
+      <div>
+        <h2>1. A working definition</h2>
+        <p class="defn">A sustainable future is one in which we cut emissions fast enough to stay within our carbon budget, in ways that are fair, keep people healthy and safe, hold up under shocks, and that people can afford and are willing to support.</p>
+        <p class="note">This draft was brought to the room and edited live. It builds on the idea, set out in the Brundtland report, of meeting the needs of the present without compromising the ability of future generations to meet their own (World Commission on Environment and Development, 1987).</p>
+      </div>
+      <div>
+        <h2>2. The 5C test for any package of measures</h2>
+        <div class="fivec">
+          <div><span class="k">C1</span><span><b>Carbon</b><p>Does the package cut enough, and early enough? Given that cumulative carbon dioxide emissions largely determine warming, a tonne saved in 2027 counts for more than one promised for 2040.</p></span></div>
+          <div><span class="k">C2</span><span><b>Criteria</b><p>Which two outcomes, beyond emissions, must the package deliver? A bar should be set for each of them, and it should be checked that no significant harm is done to the others.</p></span></div>
+          <div><span class="k">C3</span><span><b>Constraints</b><p>Does the package still work when money, politics, the workforce, the grid or supply chains become binding? It should be tested under at least two of these.</p></span></div>
+          <div><span class="k">C4</span><span><b>Combinations</b><p>Which measures need each other? A push needs a pull, new homes need transit, and electric vehicles need a clean grid.</p></span></div>
+          <div><span class="k">C5</span><span><b>Consent</b><p>Who gains, who pays, and how is the revenue returned? Further, is there a trial that may allow people to see the benefits before they are asked to vote on it?</p></span></div>
+        </div>
+      </div>
+      <div>
+        <h2>3. Sorting the moves</h2>
+        <p class="muted">Before the workshop, each of the roughly 16.8 million possible portfolios was checked against the constraints of every group. The pattern below summarises what this search found, and it may be compared with the choices made in the room.</p>
+        <div class="sort">
+          <div><b>No-regrets</b><p>These measures appear in more than half of the winning portfolios under the constraints of every group: the parking levy, homes near stations, low-carbon procurement, turn-up-and-go frequency, the hybrid work deal and safer speeds.</p></div>
+          <div><b>Conditional</b><p>The congestion charge and the road user charge are powerful, although only where politics allows them. They appear in almost every winning portfolio that is permitted to use them.</p></div>
+          <div><b>The long game</b><p>The metro line and 20-minute neighbourhoods are worth starting now, despite most of their benefits arriving after 2035. Homes near stations also belong here, which partly explains why they are a no-regrets move as well.</p></div>
+          <div><b>Regret risk</b><p>The motorway upgrade locks in both emissions and money. It appears in winning portfolios almost only where a minister has insisted on it.</p></div>
+        </div>
+      </div>
+      <div>
+        <h2>4. Further reading</h2>
+        <ul class="ref">
+          <li>Australian Government (2025). <i>Transport and Infrastructure Net Zero Roadmap and Action Plan.</i> <a href="https://www.infrastructure.gov.au/sites/default/files/documents/transport-and-infrastructure-net-zero-roadmap-and-action-plan.pdf" target="_blank" rel="noopener">infrastructure.gov.au</a></li>
+          <li>Climate Change Authority (2024). <i>Sector Pathways Review: Transport.</i> <a href="https://www.climatechangeauthority.gov.au/sites/default/files/documents/2024-09/2024SectorPathwaysReviewTransport.pdf" target="_blank" rel="noopener">climatechangeauthority.gov.au</a></li>
+          <li>Börjesson, M., Eliasson, J., Hugosson, M.B., Brundell-Freij, K. (2012). The Stockholm congestion charges, 5 years on: effects, acceptability and lessons learnt. <i>Transport Policy</i> 20, 1–12. <a href="https://doi.org/10.1016/j.tranpol.2011.11.001" target="_blank" rel="noopener">doi:10.1016/j.tranpol.2011.11.001</a></li>
+          <li>Macharis, C., Bernardini, A. (2015). Reviewing the use of multi-criteria decision analysis for the evaluation of transport projects: time for a multi-actor approach. <i>Transport Policy</i> 37, 177–186. <a href="https://doi.org/10.1016/j.tranpol.2014.11.002" target="_blank" rel="noopener">doi:10.1016/j.tranpol.2014.11.002</a></li>
+          <li>Walker, W.E., Haasnoot, M., Kwakkel, J.H. (2013). Adapt or perish: a review of planning approaches for adaptation under deep uncertainty. <i>Sustainability</i> 5(3), 955–979. <a href="https://doi.org/10.3390/su5030955" target="_blank" rel="noopener">doi:10.3390/su5030955</a></li>
+          <li>Pellegrini, A., Beck, M.J., Rose, J.M. (2026). Should I stay or should I travel? An analysis of increasing petrol prices on travel behaviour. <i>Transportation Research Part A</i> 214, 105257. <a href="https://doi.org/10.1016/j.tra.2026.105257" target="_blank" rel="noopener">doi:10.1016/j.tra.2026.105257</a></li>
+          <li>Pellegrini, A., Rose, J.M. (2026). Vehicle choice and use under alternative policy scenarios: what needs to be done to promote electric vehicle uptake and usage. <i>Transportation Research Part A</i> 204, 104819. <a href="https://doi.org/10.1016/j.tra.2025.104819" target="_blank" rel="noopener">doi:10.1016/j.tra.2025.104819</a></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>About the game</h3>
+        <p class="note">Meridian, its numbers and its cards were created for teaching purposes. Card values are relative and simplified, so that a group can build a portfolio in about 20 minutes. The real-world examples on the cards indicate where a similar measure has been tried, not that it produced the same effect. Of further note is that this page requires no account and sends nothing anywhere, that is, all choices remain on your own phone.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const D = {"cards":[{"id":1,"cat":"policy","name":"Stronger vehicle emissions standard","desc":"Tighten new-car CO2 limits faster than currently planned, so more new cars sold are electric or efficient.","cut":6,"later":0,"coins":1,"lead":3,"E":-1,"R":0,"H":1,"L":0,"tags":["elec"],"seen":"Australia's New Vehicle Efficiency Standard (2025), EU CO2 standards"},{"id":2,"cat":"policy","name":"Homes near stations","desc":"Rezone land within 800 m of frequent transit for mid-rise homes, with an affordable housing share.","cut":2,"later":3,"coins":1,"lead":5,"E":2,"R":0,"H":1,"L":-1,"tags":["land"],"seen":"NSW Transport Oriented Development program (2024)"},{"id":3,"cat":"policy","name":"Safer speeds","desc":"30 km/h on local streets and 40 km/h in town centres, with low-cost traffic calming.","cut":1,"later":0,"coins":1,"lead":1,"E":1,"R":0,"H":2,"L":2,"tags":[],"seen":"Paris (2021), Wales (2023)"},{"id":4,"cat":"policy","name":"Clean air zone","desc":"Keep the most polluting trucks and cars out of the port precinct and the city centre.","cut":3,"later":0,"coins":1,"lead":2,"E":-1,"R":0,"H":2,"L":1,"tags":[],"seen":"London ULEZ (2019)"},{"id":5,"cat":"pricing","name":"Congestion charge","desc":"A daily charge to drive into the inner city at peak times.","cut":6,"later":0,"coins":-3,"lead":3,"E":-1,"R":0,"H":1,"L":2,"tags":["driver"],"seen":"Stockholm (2006 trial), London (2003), Singapore"},{"id":6,"cat":"pricing","name":"Road user charge per km","desc":"A distance-based charge for all vehicles, including EVs, phased in as fuel excise declines.","cut":4,"later":0,"coins":-2,"lead":4,"E":-2,"R":1,"H":0,"L":0,"tags":["driver"],"seen":"New Zealand RUC (EVs since 2024)"},{"id":7,"cat":"pricing","name":"Parking levy","desc":"An annual levy on commercial and office parking spaces in centres, paid by car park owners.","cut":3,"later":0,"coins":-2,"lead":1,"E":0,"R":0,"H":0,"L":1,"tags":[],"seen":"Sydney and Melbourne parking levies"},{"id":8,"cat":"pricing","name":"50-cent fares","desc":"A flat 50-cent fare on every bus, train and ferry trip.","cut":2,"later":0,"coins":3,"lead":1,"E":2,"R":0,"H":0,"L":0,"tags":["pt"],"seen":"Queensland (since 2024)"},{"id":9,"cat":"infra","name":"New metro line","desc":"A 20 km underground line linking the outer suburbs to the centre.","cut":1,"later":7,"coins":8,"lead":9,"E":1,"R":2,"H":1,"L":1,"tags":["build","pt"],"seen":"Sydney Metro, Melbourne Suburban Rail Loop"},{"id":10,"cat":"infra","name":"Bus rapid transit network","desc":"Four corridors with dedicated lanes, level boarding and signal priority.","cut":5,"later":0,"coins":4,"lead":4,"E":2,"R":1,"H":1,"L":0,"tags":["build","pt"],"seen":"Brisbane busways, Bogota TransMilenio"},{"id":11,"cat":"infra","name":"Connected cycleway network","desc":"200 km of protected bike lanes plus safe walking routes to every school.","cut":3,"later":0,"coins":2,"lead":3,"E":1,"R":1,"H":2,"L":2,"tags":["build","pt"],"seen":"Paris Plan Velo"},{"id":12,"cat":"infra","name":"EV charging rollout","desc":"Public fast chargers and kerbside charging for homes without a driveway.","cut":4,"later":0,"coins":2,"lead":2,"E":-1,"R":0,"H":1,"L":0,"tags":["build","elec"],"seen":"Norway"},{"id":13,"cat":"infra","name":"Motorway upgrade","desc":"Widen the main motorway to ease congestion. Popular, but induced demand brings the traffic back.","cut":-2,"later":0,"coins":5,"lead":6,"E":0,"R":1,"H":-1,"L":-2,"tags":["build"],"seen":"Katy Freeway, Houston"},{"id":14,"cat":"ops","name":"Zero-emission bus fleet","desc":"Replace every diesel bus with an electric bus by 2035, with depot charging.","cut":2,"later":0,"coins":3,"lead":5,"E":1,"R":0,"H":2,"L":1,"tags":["elec","pt"],"seen":"Shenzhen (all-electric buses by 2017)"},{"id":15,"cat":"ops","name":"Turn-up-and-go frequency","desc":"A bus or train every 10 minutes or better, 7 am to 7 pm, on the main network.","cut":4,"later":0,"coins":3,"lead":1,"E":2,"R":1,"H":0,"L":1,"tags":["pt"],"seen":"Brisbane BUZ high-frequency buses"},{"id":16,"cat":"ops","name":"Smart freight and electric port","desc":"Consolidation centres, off-peak deliveries, shore power and electric trucks for port shuttles.","cut":4,"later":0,"coins":3,"lead":3,"E":0,"R":1,"H":2,"L":1,"tags":["elec"],"seen":""},{"id":17,"cat":"demand","name":"Hybrid work deal","desc":"Large employers agree to two work-from-home days a week, plus local co-working hubs.","cut":3,"later":0,"coins":1,"lead":1,"E":-1,"R":1,"H":0,"L":1,"tags":[],"seen":""},{"id":18,"cat":"demand","name":"Active travel incentives","desc":"Means-tested e-bike rebates plus travel plans for schools and workplaces.","cut":3,"later":0,"coins":2,"lead":1,"E":1,"R":0,"H":2,"L":1,"tags":["pt"],"seen":"TravelSmart (Perth)"},{"id":19,"cat":"demand","name":"20-minute neighbourhoods","desc":"Bring jobs, shops and services into the outer suburbs so daily needs are close to home.","cut":2,"later":3,"coins":3,"lead":6,"E":2,"R":1,"H":1,"L":2,"tags":["land"],"seen":"Plan Melbourne, Paris 15-minute city"},{"id":20,"cat":"demand","name":"Journey app and open data","desc":"One app for real-time info, trip planning and payment across all modes, built on open data.","cut":1,"later":0,"coins":1,"lead":1,"E":1,"R":1,"H":0,"L":0,"tags":[],"seen":"Transport for NSW Open Data"},{"id":21,"cat":"cross","name":"Grid upgrade and community batteries","desc":"Faster renewable connections, neighbourhood batteries and smart charging.","cut":8,"later":0,"coins":4,"lead":5,"E":1,"R":2,"H":1,"L":0,"tags":["build"],"seen":"Community Batteries for Household Solar (Australia)"},{"id":22,"cat":"cross","name":"Home energy upgrades","desc":"Rooftop solar, heat pumps and insulation, starting with low-income and rental homes.","cut":5,"later":0,"coins":4,"lead":3,"E":2,"R":1,"H":2,"L":0,"tags":["build","elec"],"seen":"ACT Sustainable Household Scheme"},{"id":23,"cat":"cross","name":"Low-carbon procurement","desc":"Low-carbon concrete and steel in public works, and a carbon value in every business case.","cut":3,"later":0,"coins":1,"lead":2,"E":0,"R":1,"H":0,"L":0,"tags":[],"seen":"Buy Clean California Act (2017)"},{"id":24,"cat":"cross","name":"Urban greening and cooling","desc":"Street trees, green corridors and cool surfaces in the hottest suburbs.","cut":1,"later":0,"coins":2,"lead":4,"E":1,"R":2,"H":2,"L":2,"tags":[],"seen":"Melbourne Urban Forest Strategy"}],"cats":{"policy":"Policy and regulation","pricing":"Pricing","infra":"Infrastructure","ops":"Operations","demand":"Demand management","cross":"Cross-sector"},"synergies":[{"id":"S1","a":2,"b":[9,10],"cu":2,"text":"Homes near stations + Metro or BRT: +2 CU (people live where the transit is)"},{"id":"S2","a":5,"b":[10,15],"cu":2,"text":"Congestion charge + BRT or Turn-up-and-go: +2 CU (a push needs a pull)"},{"id":"S3","a":21,"b":[12],"cu":2,"text":"Grid upgrade + EV charging: +2 CU (clean power for the cars)"}],"recycle":{"coins":1,"equity_to":1,"cards":[5,6]},"rules":{"bau":100,"target":60,"funding":16,"threshold":7,"dnsh":0},"constraints":[{"id":"C1","name":"Funding cap","text":"Treasury trims your funding. You have 12 coins instead of 16.","kind":"funding","value":12},{"id":"C2","name":"No new charges on drivers","text":"Cabinet rules out new charges on motorists this term. You cannot use the Congestion charge or the Road user charge.","kind":"ban","cards":[5,6]},{"id":"C3","name":"Workforce shortage","text":"Construction trades are stretched. You can pick at most 2 Build cards.","kind":"maxtag","tag":"build","value":2},{"id":"C4","name":"Election in 2028","text":"Voters must see results fast. At least 15 CU of your cut must come from cards with a lead time of 2 years or less.","kind":"quick","lead":2,"value":15},{"id":"C5","name":"The Minister's motorway","text":"The Minister promised it at the last election. The Motorway upgrade must be in your portfolio. Canberra pays part of it, so it costs you 3 coins instead of 5.","kind":"must","cards":[13],"coins":3},{"id":"C6","name":"Grid bottleneck","text":"The network cannot take more load. Without the Grid upgrade, every Electric card cuts only half its CU (round down).","kind":"grid"},{"id":"C7","name":"Flood year","text":"A major flood hits the region in 2030. Your Resilience score must reach at least +6, whichever criteria you chose.","kind":"minscore","crit":"R","value":6},{"id":"C8","name":"Supply-chain squeeze","text":"Batteries and electric vehicles are scarce. Every Electric card costs 1 extra coin.","kind":"tagcost","tag":"elec","value":1},{"id":"C9","name":"Federal co-funding","text":"Canberra offers 4 extra coins, but only for Public and active transport cards.","kind":"bonusfund","tag":"pt","value":4}],"groups":{"A":["C2","C9"],"B":["C5","C7"],"C":["C3","C6"],"D":["C4","C8"],"E":["C1","C3"]},"curveball":{"name":"Court ruling","text":"The High Court rules that your road user charge is an excise, which only Canberra can levy. Canberra promises a national scheme from 2030 instead. If you picked the Road user charge, it now cuts only 2 CU, raises no money for you (0 coins) and its revenue cannot be recycled. Rebalance if you need to.","kind":"ruling","card":6,"cut":2,"coins":0},"critNames":{"E":"Equity","R":"Resilience","H":"Health and safety","L":"Liveability"}};
+// Meridian 2035 scoring engine. Mirrors calibrate.py exactly.
+function scorePortfolio(D, st) {
+  // st: {group, crit:[two of 'E','R','H','L'], picks:Set(ids), recycle:Set(ids), curveball:bool}
+  const R = D.rules;
+  const byId = {}; D.cards.forEach(c => byId[c.id] = c);
+  const cons = (D.groups[st.group] || []).map(id => D.constraints.find(c => c.id === id));
+  const has = id => st.picks.has(id);
+  const kind = k => cons.find(c => c.kind === k);
+  const cb = !!st.curveball;
+  const gridBN = !!kind('grid') && !has(21);
+  const out = {lines: [], checks: [], cut: 0, coins: 0, allow: R.funding, sc: {E:0,R:0,H:0,L:0}, halved: new Set()};
+  let quick = 0, nBuild = 0, nElec = 0, ptSpend = 0;
+  for (const id of st.picks) {
+    const c = byId[id];
+    let cut = c.cut, coins = c.coins, E = c.E;
+    if (cb && id === D.curveball.card) { cut = D.curveball.cut; coins = D.curveball.coins; }
+    const recycled = st.recycle.has(id) && D.recycle.cards.includes(id) && !(cb && id === D.curveball.card);
+    if (recycled) { coins += D.recycle.coins; E = D.recycle.equity_to; }
+    let effCut = cut;
+    if (gridBN && c.tags.includes('elec')) { effCut = Math.floor(cut / 2); out.halved.add(id); }
+    if (c.lead <= 2) quick += c.cut;
+    if (c.tags.includes('build')) nBuild++;
+    if (c.tags.includes('elec')) nElec++;
+    if (c.tags.includes('pt')) ptSpend += c.coins;
+    out.cut += effCut; out.coins += coins;
+    out.sc.E += E; out.sc.R += c.R; out.sc.H += c.H; out.sc.L += c.L;
+  }
+  // synergies
+  out.synergies = [];
+  for (const s of D.synergies) {
+    if (has(s.a) && s.b.some(has)) { out.cut += s.cu; out.synergies.push(s); }
+  }
+  // constraint effects on money
+  const tc = kind('tagcost'); if (tc) out.coins += nElec * tc.value;
+  const must = kind('must');
+  if (must && must.coins !== undefined) for (const id of must.cards) if (has(id)) out.coins += must.coins - byId[id].coins;
+  const fc = kind('funding'); if (fc) out.allow = fc.value;
+  const bf = kind('bonusfund'); out.bonus = 0;
+  if (bf) { out.bonus = Math.min(bf.value, Math.max(ptSpend, 0)); out.allow += out.bonus; }
+  out.emissions = R.bau - out.cut;
+  const need = R.bau - R.target;
+  out.checks.push({id:'target', label:`Emissions in 2035 at or below ${R.target} CU`, ok: out.cut >= need, detail:`${out.emissions} CU`});
+  out.checks.push({id:'money', label:`Spend within ${out.allow} coins`, ok: out.coins <= out.allow, detail:`${out.coins} coins`});
+  for (const k of st.crit) out.checks.push({id:'crit'+k, label:`${D.critNames[k]} at +${R.threshold} or more`, ok: out.sc[k] >= R.threshold, detail: fmt(out.sc[k])});
+  const others = ['E','R','H','L'].filter(k => !st.crit.includes(k));
+  const dnshFail = ['E','R','H','L'].filter(k => out.sc[k] < R.dnsh);
+  out.checks.push({id:'dnsh', label:'No criterion below 0 (do no significant harm)', ok: dnshFail.length === 0, detail: dnshFail.length ? dnshFail.map(k => D.critNames[k]).join(', ') : 'all clear'});
+  for (const c of cons) {
+    let ok = true, detail = '';
+    if (c.kind === 'ban') { const bad = c.cards.filter(has); ok = bad.length === 0; detail = ok ? 'respected' : 'remove card ' + bad.join(', '); }
+    else if (c.kind === 'maxtag') { ok = nBuild <= c.value; detail = `${nBuild} of ${c.value} Build cards`; }
+    else if (c.kind === 'quick') { ok = quick >= c.value; detail = `${quick} of ${c.value} CU from quick cards`; }
+    else if (c.kind === 'must') { ok = c.cards.every(has); detail = ok ? 'included' : 'add card ' + c.cards.join(', '); }
+    else if (c.kind === 'minscore') { ok = out.sc[c.crit] >= c.value; detail = `${D.critNames[c.crit]} ${fmt(out.sc[c.crit])} of +${c.value}`; }
+    else if (c.kind === 'grid') { detail = gridBN ? (out.halved.size ? `${out.halved.size} Electric card(s) halved` : 'no Electric cards yet') : 'Grid upgrade in place'; }
+    else if (c.kind === 'tagcost') { detail = `+${nElec * c.value} coins on Electric cards`; }
+    else if (c.kind === 'funding') { detail = `${c.value} coins available`; }
+    else if (c.kind === 'bonusfund') { detail = `+${out.bonus} of ${c.value} bonus coins used`; }
+    out.checks.push({id:c.id, label:c.name, ok, detail, constraint:true});
+  }
+  out.nBuild = nBuild; out.quick = quick; out.nElec = nElec;
+  out.pass = st.crit.length === 2 && out.checks.every(x => x.ok);
+  return out;
+}
+function fmt(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v); }
+
+
+const CATCOL = {policy:'--c-policy',pricing:'--c-pricing',infra:'--c-infra',ops:'--c-ops',demand:'--c-demand',cross:'--c-cross'};
+const TAGNAME = {build:'Build',elec:'Electric',pt:'Public & active',driver:'Driver charge',land:'Land use'};
+const $ = s => document.querySelector(s);
+const store = {get(){try{return JSON.parse(localStorage.getItem('meridian2035')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('meridian2035',JSON.stringify(v))}catch(e){}}};
+const saved = store.get();
+const st = {
+  group: saved && D.groups[saved.group] ? saved.group : 'A',
+  crit: saved && Array.isArray(saved.crit) ? saved.crit.slice(0,2) : [],
+  picks: new Set(saved && saved.picks || []),
+  recycle: new Set(saved && saved.recycle || []),
+  curveball: !!(saved && saved.curveball)
+};
+const save = () => store.set({group:st.group,crit:st.crit,picks:[...st.picks],recycle:[...st.recycle],curveball:st.curveball});
+const fmtS = v => (v>0?'+':v<0?'−':'')+Math.abs(v);
+const coinTxt = c => c<0 ? `raises ${-c}` : `${c} coin${c===1?'':'s'}`;
+
+function buildSetup(){
+  const gs = $('#groupSeg'); gs.innerHTML='';
+  Object.keys(D.groups).forEach(g=>{
+    const b=document.createElement('button'); b.type='button'; b.id='grp-'+g; b.textContent='Group '+g;
+    b.setAttribute('aria-pressed', String(st.group===g));
+    b.onclick=()=>{st.group=g; save(); buildSetup(); render();};
+    gs.appendChild(b);
+  });
+  const cb=$('#consBox'); cb.innerHTML='';
+  D.groups[st.group].forEach(id=>{
+    const c=D.constraints.find(x=>x.id===id);
+    const d=document.createElement('div'); d.className='con';
+    d.innerHTML=`<b>${c.name}</b><p>${c.text}</p>`; cb.appendChild(d);
+  });
+  const cs=$('#critSeg'); cs.innerHTML='';
+  ['E','R','H','L'].forEach(k=>{
+    const b=document.createElement('button'); b.type='button'; b.className='chip'; b.id='crit-'+k; b.textContent=D.critNames[k];
+    b.setAttribute('aria-pressed', String(st.crit.includes(k)));
+    b.onclick=()=>{ if(st.crit.includes(k)) st.crit=st.crit.filter(x=>x!==k); else { st.crit.push(k); if(st.crit.length>2) st.crit.shift(); } save(); buildSetup(); render(); };
+    cs.appendChild(b);
+  });
+  $('#curve').checked = st.curveball;
+}
+
+function buildDeck(){
+  const deck=$('#deck'); deck.innerHTML='';
+  Object.entries(D.cats).forEach(([cat,label])=>{
+    const sec=document.createElement('section'); sec.className='cat'; sec.style.setProperty('--cc',`var(${CATCOL[cat]})`);
+    sec.innerHTML=`<h3><span class="swatch"></span>${label}</h3><div class="cards"></div>`;
+    const wrap=sec.querySelector('.cards');
+    D.cards.filter(c=>c.cat===cat).forEach(c=>{
+      const el=document.createElement('article'); el.className='card'; el.id='card-'+c.id; el.style.setProperty('--cc',`var(${CATCOL[cat]})`);
+      const syn=D.synergies.filter(s=>s.a===c.id||s.b.includes(c.id));
+      const pips=['E','R','H','L'].map(k=>`<span class="pip ${c[k]>0?'pos':c[k]<0?'neg':''}" title="${D.critNames[k]}">${k} ${fmtS(c[k])}</span>`).join('');
+      const tags=c.tags.map(t=>`<span class="tag">${TAGNAME[t]}</span>`).join('');
+      el.innerHTML=`
+        <button class="cardbtn" type="button" aria-pressed="false" aria-label="${c.name}">
+          <span class="bullet">${c.id}</span>
+          <span><span class="name">${c.name}</span><span class="desc" style="display:block">${c.desc}</span></span>
+          <span class="tick" aria-hidden="true">✓</span>
+        </button>
+        <div class="stats"><span><b>${c.cut>0?'−':'+'}${Math.abs(c.cut)}</b> CU${c.later?` <span class="muted">(${c.later} more after 2035)</span>`:''}</span><span><b>${c.coins<0?'+'+(-c.coins):c.coins}</b> ${c.coins<0?'coins raised':'coin'+(c.coins===1?'':'s')}</span><span><b>${c.lead}</b> yr lead</span></div>
+        <div class="crit">${pips}</div>
+        ${tags?`<div class="tags">${tags}</div>`:''}
+        ${syn.map(s=>`<div class="note syn">Synergy: ${s.text}</div>`).join('')}
+        <div class="note half" hidden data-half>Halved by the grid bottleneck</div>
+        ${c.seen?`<div class="note">Seen in: ${c.seen}</div>`:''}
+        ${D.recycle.cards.includes(c.id)?`<label class="recycle" hidden data-rec><input type="checkbox" id="rec-${c.id}"> Recycle revenue to low-income households (+1 coin, Equity becomes +1)</label>`:''}`;
+      el.querySelector('.cardbtn').onclick=()=>{ if(st.picks.has(c.id)){st.picks.delete(c.id); st.recycle.delete(c.id);} else st.picks.add(c.id); save(); render(); };
+      const rec=el.querySelector(`#rec-${c.id}`);
+      if(rec) rec.onchange=()=>{ if(rec.checked) st.recycle.add(c.id); else st.recycle.delete(c.id); save(); render(); };
+      wrap.appendChild(el);
+    });
+    deck.appendChild(sec);
+  });
+}
+
+function render(){
+  const r = scorePortfolio(D, st);
+  D.cards.forEach(c=>{
+    const el=document.getElementById('card-'+c.id); const on=st.picks.has(c.id);
+    el.classList.toggle('sel',on); el.querySelector('.cardbtn').setAttribute('aria-pressed',String(on));
+    const rec=el.querySelector('[data-rec]');
+    if(rec){ const blocked = st.curveball && c.id===D.curveball.card; rec.hidden=!on || blocked; rec.querySelector('input').checked=st.recycle.has(c.id); }
+    el.querySelector('[data-half]').hidden=!r.halved.has(c.id);
+  });
+  // emissions
+  $('#emis').textContent=r.emissions; $('#cutTxt').textContent=r.cut;
+  const eb=$('#emisBar'); const okE=r.emissions<=D.rules.target;
+  eb.className='bar '+(okE?'ok':'no'); eb.querySelector('.fill').style.width=Math.max(0,Math.min(100,r.emissions))+'%';
+  // coins
+  $('#coins').textContent=r.coins; $('#allowTxt').textContent='of '+r.allow+(r.bonus?` (incl. ${r.bonus} federal)`:'');
+  const cbx=$('#coinBar'); const okC=r.coins<=r.allow; cbx.className='bar '+(okC?'ok':'no');
+  cbx.querySelector('.fill').style.width=Math.max(0,Math.min(100,r.allow?100*r.coins/r.allow:0))+'%';
+  // criteria
+  const lo=-6, hi=16, pos=v=>100*(Math.max(lo,Math.min(hi,v))-lo)/(hi-lo);
+  $('#critRows').innerHTML=['E','R','H','L'].map(k=>{
+    const v=r.sc[k], chosen=st.crit.includes(k), tgt=chosen?D.rules.threshold:D.rules.dnsh, ok=v>=tgt;
+    const a=pos(Math.min(0,v)), b=pos(Math.max(0,v));
+    return `<div class="critrow ${chosen?'chosen':''}"><span class="lab">${D.critNames[k]}${chosen?' ★':''}</span><span class="val">${fmtS(v)}</span>
+      <span class="dbar" title="target ${fmtS(tgt)}"><span class="f" style="left:${a}%;width:${b-a}%;background:var(${ok?'--ok':'--bad'})"></span><span class="zero" style="left:${pos(0)}%"></span><span class="tgt" style="left:${pos(tgt)}%"></span></span></div>`;
+  }).join('');
+  // checks
+  const checks=[...r.checks];
+  if(st.crit.length<2) checks.splice(2,0,{label:'Choose two criteria to champion',ok:false,detail:`${st.crit.length} of 2 chosen`});
+  $('#checks').innerHTML=checks.map(c=>`<li class="${c.ok?'ok':'no'}"><span class="ic">${c.ok?'✓':'✗'}</span><span>${c.constraint?'<span class="eyebrow">Constraint</span> ':''}${c.label}<small>${c.detail||''}</small></span></li>`).join('');
+  const fails=checks.filter(c=>!c.ok).length;
+  const v=$('#verdict'); v.className='verdict '+(r.pass?'ok':'no');
+  v.textContent = st.picks.size===0 ? 'Start by adding cards' : r.pass ? 'Portfolio passes every check' : `${fails} check${fails===1?'':'s'} still to fix`;
+  // summary
+  const ids=[...st.picks].sort((a,b)=>a-b);
+  $('#summary').textContent = ids.length ? `${ids.length} cards: ${ids.join(', ')}` + (st.recycle.size?` · recycling on ${[...st.recycle].sort((a,b)=>a-b).join(', ')}`:'') : 'No cards yet.';
+  $('#mobilebar').innerHTML=`<span>2035: <b>${r.emissions}</b> CU <span class="muted">/ 60</span></span><span>Coins: <b>${r.coins}</b> <span class="muted">/ ${r.allow}</span></span><span class="pill ${r.pass?'ok':'no'}">${r.pass?'Passes':fails+' to fix'}</span>`;
+}
+
+function buildRules(){
+  $('#synList').innerHTML=D.synergies.map(s=>`<li>${s.text}</li>`).join('');
+  const dealt={}; Object.entries(D.groups).forEach(([g,ids])=>ids.forEach(id=>(dealt[id]=dealt[id]||[]).push(g)));
+  $('#consTable tbody').innerHTML=D.constraints.map(c=>`<tr><td><b>${c.name}</b></td><td>${c.text}</td><td class="mono">${(dealt[c.id]||[]).join(', ')}</td></tr>`).join('');
+  $('#curveTxt').innerHTML=`<b>${D.curveball.name}.</b> ${D.curveball.text}`;
+}
+
+$('#curve').onchange=e=>{st.curveball=e.target.checked; save(); render();};
+$('#resetBtn').onclick=()=>{$('#resetConfirm').hidden=false;};
+$('#resetNo').onclick=()=>{$('#resetConfirm').hidden=true;};
+$('#resetYes').onclick=()=>{st.picks.clear(); st.recycle.clear(); save(); $('#resetConfirm').hidden=true; render();};
+$('#copyBtn').onclick=()=>{
+  const txt=[...st.picks].sort((a,b)=>a-b).join(', ');
+  const msg=$('#copyMsg');
+  if(!txt){msg.textContent='Add some cards first.';return;}
+  navigator.clipboard.writeText(txt).then(()=>{msg.textContent='Copied: '+txt;}).catch(()=>{msg.textContent='Copy blocked here. Card numbers: '+txt;});
+};
+
+function route(){
+  const h=(location.hash||'#play').slice(1); const view=['play','rules','take-home'].includes(h)?h:'play';
+  document.querySelectorAll('.view').forEach(v=>v.hidden = v.id!=='view-'+view);
+  document.querySelectorAll('nav.tabs a').forEach(a=>{ if(a.dataset.view===view) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  $('#mobilebar').style.display = view==='play' ? '' : 'none';
+}
+window.addEventListener('hashchange',route);
+buildSetup(); buildDeck(); buildRules(); render(); route();
+</script>
+
+</body>
+</html>
